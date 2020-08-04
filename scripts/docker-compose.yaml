@@ -79,11 +79,15 @@ services:
           - eventstore.local
         ipv4_address: 172.42.238.5
   sender:
+    image: softwaremill/mq-sender
+    networks:
+      app_net:
+        ipv4_address: 172.42.238.10
+  receiver:
     image: softwaremill/mq
     networks:
       app_net:
         ipv4_address: 172.42.238.2
-
 networks:
   app_net:
     ipam:

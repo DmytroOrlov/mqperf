@@ -9,11 +9,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import com.softwaremill.mqperf.config.TestConfig
 import com.softwaremill.mqperf.mq.RMReceiver.mq
 import com.softwaremill.mqperf.mq.RMSender.mq
-import eventstore.akka.MyPersistentSubscriptionActor.ManualAck
 import eventstore.akka.tcp.ConnectionActor
-import eventstore.akka.{LiveProcessingStarted, MyPersistentSubscriptionActor, Settings}
+import eventstore.akka.{LiveProcessingStarted, Settings}
 import eventstore.cluster.{ClusterSettings, GossipSeedsOrDns}
 import eventstore._
+import eventstore.akka.PersistentSubscriptionActor.ManualAck
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -51,16 +51,14 @@ class EventStoreMq(testConfig: TestConfig) extends Mq {
 
   private lazy val receiveActor = system.actorOf(Props(new AddToBufferActor))
   private lazy val subscriptionActor = system.actorOf(
-    Props(
-      new MyPersistentSubscriptionActor(
-        connection,
-        receiveActor,
-        EventStream.Id(StreamId),
-        GroupName,
-        None,
-        settings,
-        false
-      )
+    PersistentSubscriptionActor.props(
+      connection,
+      receiveActor,
+      EventStream.Id(StreamId),
+      GroupName,
+      None,
+      settings,
+      autoAck = false
     )
   )
   private val msgBuffer = new ConcurrentLinkedQueue[(UUID, String)]()
@@ -99,7 +97,7 @@ class EventStoreMq(testConfig: TestConfig) extends Mq {
       }
 
       override def ack(ids: List[UUID]): Unit = {
-        subscriptionActor ! ManualAck(ids)
+        ids.foreach { i => subscriptionActor ! ManualAck(i) }
       }
     }
 
@@ -132,7 +130,7 @@ class EventStoreMq(testConfig: TestConfig) extends Mq {
 }
 
 object ESSender extends App {
-  println("iteration 2")
+  println("iteration 3")
   val mq = new EventStoreMq(
     TestConfig("", "", 0, 0, 0, 0, 0, 0, List("172.42.238.3", "172.42.238.4", "172.42.238.5"), "", null)
   )
@@ -142,6 +140,7 @@ object ESSender extends App {
 }
 
 object ESReceiver extends App {
+  println("iteration 3")
   val mq = new EventStoreMq(
     TestConfig("", "", 0, 0, 0, 0, 0, 0, List("172.42.238.3", "172.42.238.4", "172.42.238.5"), "", null)
   )

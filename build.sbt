@@ -35,7 +35,7 @@ val doobieVersion = "0.9.0"
 dockerExposedPorts := Seq(8080)
 dockerBaseImage := "openjdk:11-jdk-slim"
 dockerUsername := Some("softwaremill")
-packageName in Docker := "mq"
+packageName in Docker := "mq-sender"
 mainClass in Compile := Some("com.softwaremill.mqperf.mq.ESSender")
 dockerUpdateLatest := true
 
