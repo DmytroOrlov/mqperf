@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import com.softwaremill.mqperf.config.TestConfig
+import com.softwaremill.mqperf.mq.RMReceiver.mq
+import com.softwaremill.mqperf.mq.RMSender.mq
 import eventstore.akka.MyPersistentSubscriptionActor.ManualAck
 import eventstore.akka.tcp.ConnectionActor
 import eventstore.akka.{LiveProcessingStarted, MyPersistentSubscriptionActor, Settings}
@@ -127,4 +129,28 @@ class EventStoreMq(testConfig: TestConfig) extends Mq {
   override def close(): Unit = {
     system.terminate()
   }
+}
+
+object ESSender extends App {
+  println("iteration 2")
+  val mq = new EventStoreMq(
+    TestConfig("", "", 0, 0, 0, 0, 0, 0, List("172.42.238.3", "172.42.238.4", "172.42.238.5"), "", null)
+  )
+  mq.createSender().send(List("a", "b", "c", "d"))
+  println("SENT")
+  mq.close()
+}
+
+object ESReceiver extends App {
+  val mq = new EventStoreMq(
+    TestConfig("", "", 0, 0, 0, 0, 0, 0, List("172.42.238.3", "172.42.238.4", "172.42.238.5"), "", null)
+  )
+  val rcv = mq.createReceiver()
+  for (i <- 1 to 100) {
+    val r = rcv.receive(10)
+    println("GOT " + r)
+    rcv.ack(r.map(_._1))
+    Thread.sleep(1000)
+  }
+  mq.close()
 }
