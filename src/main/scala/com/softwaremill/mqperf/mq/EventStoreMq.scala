@@ -148,7 +148,9 @@ object ESReceiver extends App {
   for (i <- 1 to 100) {
     val r = rcv.receive(10)
     println("GOT " + r)
-    rcv.ack(r.map(_._1))
+    if (r.nonEmpty) {
+      rcv.ack(r.map(_._1))
+    }
     Thread.sleep(1000)
   }
   mq.close()
